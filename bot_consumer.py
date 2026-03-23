@@ -12,9 +12,19 @@ import asyncio
 from typing import Optional
 
 from queue_utils import MessageType, print_message
+from bot_producer import stop_typing_for_turn, get_current_turn_id
 
 
-async def send_telegram_message(bot, chat_id: int, text: str) -> bool:
+def escape_markdown(text: str) -> str:
+    """Escape special characters for Telegram MarkdownV2."""
+    # 需要转义的字符: _ * [ ] ( ) ~ ` > # + - = | { } . !
+    escape_chars = r'_*[]()~`>#+-=|{}.!'
+    for char in escape_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
+
+
+async def send_telegram_message(bot, chat_id: int, text: str, use_markdown: bool = True) -> bool:
     """Send a text message to Telegram chat, splitting if too long."""
     if not bot or not chat_id:
         return False
@@ -35,19 +45,32 @@ async def send_telegram_message(bot, chat_id: int, text: str) -> bool:
                 await bot.send_message(
                     chat_id=chat_id,
                     text=prefix + chunk,
-                    parse_mode=None  # 不使用 markdown 避免格式问题
+                    parse_mode="MarkdownV2" if use_markdown else None
                 )
                 await asyncio.sleep(0.1)  # 避免发送太快
         else:
             await bot.send_message(
                 chat_id=chat_id,
                 text=text,
-                parse_mode=None
+                parse_mode="MarkdownV2" if use_markdown else None
             )
         return True
     except Exception as e:
-        print(f"[Telegram Consumer ERROR] Failed to send message: {e}")
-        return False
+        # Markdown 解析失败时，尝试用纯文本发送
+        if use_markdown:
+            try:
+                await bot.send_message(
+                    chat_id=chat_id,
+                    text=text,
+                    parse_mode=None
+                )
+                return True
+            except Exception as e2:
+                print(f"[Telegram Consumer ERROR] Failed to send message: {e2}")
+                return False
+        else:
+            print(f"[Telegram Consumer ERROR] Failed to send message: {e}")
+            return False
 
 
 async def telegram_bot_consumer(
@@ -63,9 +86,17 @@ async def telegram_bot_consumer(
     await print_queue.put(print_message("[Telegram Consumer] Started"))
     
     running = True
+    last_turn_id = 0  # 上一次处理的 turn ID
+    
     while running:
         try:
             msg = await telegram_response_queue.get()
+            
+            # 检查是否是新的 turn
+            current_turn_id = get_current_turn_id()
+            is_new_turn = current_turn_id != last_turn_id
+            if is_new_turn:
+                last_turn_id = current_turn_id
             
             if msg.type == MessageType.TELEGRAM_RESPONSE:
                 data = msg.data
@@ -74,6 +105,10 @@ async def telegram_bot_consumer(
                 
                 if not content:
                     continue
+                
+                # 新 turn 的第一个响应发送前，停止 typing 状态
+                if is_new_turn:
+                    stop_typing_for_turn()
                 
                 # 获取 bot 和 chat_id
                 bot = get_bot_func()
@@ -85,27 +120,28 @@ async def telegram_bot_consumer(
                     )
                     continue
                 
-                # 根据类型格式化消息
+                # 根据类型格式化消息（使用 MarkdownV2）
                 if response_type == "tool_start":
-                    formatted = f"🛠️ <b>Executing Tool</b>\n<pre>{content}</pre>"
+                    formatted = f"🛠️ *Executing Tool*\n```\n{escape_markdown(content)}\n```"
                     await send_telegram_message(bot, chat_id, formatted)
                     
                 elif response_type == "tool_result":
-                    formatted = f"📊 <b>Tool Result</b>\n<pre>{content[:3000]}{'...' if len(content) > 3000 else ''}</pre>"
+                    truncated = content[:3000] + ('...' if len(content) > 3000 else '')
+                    formatted = f"📊 *Tool Result*\n```\n{escape_markdown(truncated)}\n```"
                     await send_telegram_message(bot, chat_id, formatted)
                     
                 elif response_type == "content":
                     # 中间过程的 content（模型在调用工具前的思考/说明）
-                    formatted = f"💭 <b>Thinking</b>\n{content}"
+                    formatted = f"💭 *Thinking*\n{escape_markdown(content)}"
                     await send_telegram_message(bot, chat_id, formatted)
                     
                 elif response_type == "final":
-                    formatted = f"🤖 <b>Assistant</b>\n{content}"
+                    formatted = f"🤖 *Assistant*\n{escape_markdown(content)}"
                     await send_telegram_message(bot, chat_id, formatted)
                     
                 else:
                     # 普通文本
-                    await send_telegram_message(bot, chat_id, content)
+                    await send_telegram_message(bot, chat_id, escape_markdown(content))
                     
             elif msg.type == MessageType.COMMAND and msg.data == "exit":
                 running = False

@@ -9,6 +9,7 @@ from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import HTML
 
 from queue_utils import Message, MessageType, print_message, telegram_message, telegram_response_message
+from bot_producer import set_telegram_batch_active
 from tools import TOOLS, AVAILABLE_TOOLS
 from utils import strip_past_turn_reasoning_context
 
@@ -73,7 +74,36 @@ async def execute_tool_calls(tool_calls, print_queue, telegram_response_queue=No
 
         result = await _run_tool()
 
-        result_str = json.dumps(result, indent=2) if isinstance(result, (list, dict)) else str(result)
+        # 检查结果是否是内容部件格式（如图片），如果是则直接使用数组格式
+        def _is_content_parts(obj):
+            """检查对象是否是内容部件列表（用于图片等多媒体内容）"""
+            if not isinstance(obj, list):
+                return False
+            if len(obj) == 0:
+                return False
+            # 检查列表元素是否都有 'type' 字段
+            return all(isinstance(item, dict) and "type" in item for item in obj)
+
+        # 用于日志和 telegram 的字符串表示
+        if _is_content_parts(result):
+            # 对于内容部件，截断 base64 数据以便显示
+            display_result = []
+            for item in result:
+                if item.get("type") == "image_url" and "image_url" in item:
+                    url = item["image_url"].get("url", "")
+                    if url.startswith("data:"):
+                        display_result.append({
+                            "type": "image_url",
+                            "image_url": {"url": url[:100] + "... (base64 data truncated)"}
+                        })
+                    else:
+                        display_result.append(item)
+                else:
+                    display_result.append(item)
+            result_str = json.dumps(display_result, indent=2)
+        else:
+            result_str = json.dumps(result, indent=2) if isinstance(result, (list, dict)) else str(result)
+        
         if len(result_str) > 16000:
             result_str = result_str[:16000] + f'\n... ({len(result_str) - 16000} more chars)'
         await print_queue.put(print_message(
@@ -86,13 +116,32 @@ async def execute_tool_calls(tool_calls, print_queue, telegram_response_queue=No
                 telegram_response_message(f"{tool_name}:\n{result_str}", "tool_result")
             )
 
-        results.append({
+        # 构建 tool 结果消息
+        tool_result_msg = {
             "role": "tool",
-            "content": result_str,
             "tool_call_id": call.id,
             "name": tool_name,
-        })
+        }
+        
+        # 如果结果是内容部件格式（如图片），直接使用数组作为 content
+        if _is_content_parts(result):
+            tool_result_msg["content"] = result
+        else:
+            tool_result_msg["content"] = result_str if isinstance(result_str, str) else json.dumps(result, indent=2)
+        
+        results.append(tool_result_msg)
     return results
+
+
+async def _process_telegram_messages(user_content: str, messages: List[Dict],
+                                      is_preserved_thinking: bool, print_queue, telegram_response_queue):
+    """处理 Telegram 消息的包装函数，确保 batch 标志被重置"""
+    try:
+        return await process_user_message(user_content, messages, is_preserved_thinking, print_queue, telegram_response_queue)
+    finally:
+        # 无论成功还是失败，都重置 batch 标志
+        set_telegram_batch_active(False)
+        await print_queue.put(print_message("[Telegram Batch] 处理完成，重置 batch 标志"))
 
 
 async def process_user_message(user_content: str, messages: List[Dict],
@@ -197,6 +246,14 @@ async def model_consumer(main_queue: asyncio.Queue, print_queue: asyncio.Queue, 
 
         elif msg.type == MessageType.TELEGRAM:
             await print_queue.put(print_message(f"\n[收到 Telegram 消息]: {msg.data}"))
+            # 清空残留的中断信号（避免打断本次消息处理）
+            while not user_interrupt_queue.empty():
+                try:
+                    user_interrupt_queue.get_nowait()
+                    await print_queue.put(print_message("[清理残留中断信号]"))
+                except asyncio.QueueEmpty:
+                    break
+            
             # 收到 Telegram 消息后，等待 10 秒看是否有后续新消息
             await print_queue.put(print_message("[等待 10 秒收集更多消息...]"))
             await asyncio.sleep(10)
@@ -219,7 +276,11 @@ async def model_consumer(main_queue: asyncio.Queue, print_queue: asyncio.Queue, 
             # 合并所有消息
             combined_content = "\n".join(telegram_messages)
             await print_queue.put(print_message(f"[合并后的消息]: {combined_content}"))
-            process_user_message_task = asyncio.create_task(process_user_message(combined_content, messages, is_preserved_thinking, print_queue, telegram_response_queue))
+            
+            # 创建处理任务，并确保 batch 标志被重置
+            process_user_message_task = asyncio.create_task(
+                _process_telegram_messages(combined_content, messages, is_preserved_thinking, print_queue, telegram_response_queue)
+            )
 
         else:
             await print_queue.put(print_message(f"未知消息类型: {msg.type}"))

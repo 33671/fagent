@@ -79,7 +79,7 @@ TMUX_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "tmux_write",
-            "description": "Send input (keys) to a window. Each window has exactly one pane.",
+            "description": "Send input (keys) to a window and return the subsequent output after waiting. Each window has exactly one pane.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -90,6 +90,10 @@ TMUX_TOOLS_SCHEMA = [
                     "input": {
                         "type": "string",
                         "description": "Text to send. Use '\\n' for Enter, and tmux key syntax like 'C-c' for Ctrl+C.",
+                    },
+                    "wait_secs": {
+                        "type": "number",
+                        "description": "Seconds to wait before reading output. Defaults to 1.0. Increase for slower commands.",
                     },
                 },
                 "required": ["target_window", "input"],

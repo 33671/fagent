@@ -257,12 +257,20 @@ async def tmux_read(target_window: str, line_offset: int, n_lines: int) -> str:
     return content
 
 
-async def tmux_write(target_window: str, input: str) -> str:
-    """Send input to a window's pane."""
+async def tmux_write(target_window: str, input: str, wait_secs: float = 1.0) -> str:
+    """Send input to a window's pane and return the output after waiting."""
     if not await _window_exists(target_window):
         return f"Error: Window '{target_window}' does not exist"
 
     pane_target = _get_pane_target(target_window)
+    
+    # 记录发送前的屏幕行数
+    await _ensure_screen(target_window)
+    await _feed_new_data(target_window)
+    screen, _, _ = _window_screens[target_window]
+    lines_before = len(screen.display)
+    
+    # 发送输入
     parts = input.split("\\n")
 
     for i, part in enumerate(parts):
@@ -275,7 +283,28 @@ async def tmux_write(target_window: str, input: str) -> str:
         if i < len(parts) - 1 or (parts and not re.match(r"^[MC]-.$", parts[-1])):
             await _tmux("send-keys", "-t", pane_target, "Enter")
 
-    return f"Input sent to {target_window}"
+    # 等待指定时间
+    await asyncio.sleep(wait_secs)
+    
+    # 读取新输出
+    await _feed_new_data(target_window)
+    screen, _, _ = _window_screens[target_window]
+    lines_after = len(screen.display)
+    
+    # 获取新产生的行
+    if lines_after > lines_before:
+        new_lines = screen.display[lines_before:lines_after]
+        output = "\n".join(new_lines).rstrip()
+    else:
+        output = ""
+    
+    max_chars = 16000
+    if output:
+        if len(output) > max_chars:
+            output = _truncate_content(output, max_chars)
+        return f"Input sent to {target_window}. Output after {wait_secs}s:\n{output}"
+    else:
+        return f"Input sent to {target_window}. No new output after {wait_secs}s."
 
 
 async def tmux_del(target_window: str) -> str:
