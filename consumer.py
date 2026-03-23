@@ -213,9 +213,11 @@ async def model_consumer(main_queue: asyncio.Queue, print_queue: asyncio.Queue, 
     running = True
 
     while running:
-        msg = await main_queue.get()
+        msg_task = asyncio.create_task(main_queue.get())
+        user_interrupt_get = asyncio.create_task(user_interrupt_queue.get())
+        await asyncio.wait([msg_task, user_interrupt_get], return_when=asyncio.FIRST_COMPLETED)
         process_user_message_task:asyncio.Task= None
-
+        msg = await msg_task
         if msg.type == MessageType.COMMAND:
             cmd = msg.data
             if cmd == "exit":

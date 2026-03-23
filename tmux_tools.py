@@ -263,16 +263,14 @@ async def tmux_write(target_window: str, input: str, wait_secs: float = 1.0) -> 
         return f"Error: Window '{target_window}' does not exist"
 
     pane_target = _get_pane_target(target_window)
-    
-    # 记录发送前的屏幕行数
+
+    # 1. Catch up the main screen and record the file byte position BEFORE sending
     await _ensure_screen(target_window)
     await _feed_new_data(target_window)
-    screen, _, _ = _window_screens[target_window]
-    lines_before = len(screen.display)
-    
-    # 发送输入
-    parts = input.split("\\n")
+    _, _, pos_before = _window_screens[target_window]
 
+    # 2. Send the input
+    parts = input.split("\\n")
     for i, part in enumerate(parts):
         if part:
             if re.match(r"^[MC]-.$", part) or part in ["Enter", "Escape", "Tab", "Space"]:
@@ -283,21 +281,39 @@ async def tmux_write(target_window: str, input: str, wait_secs: float = 1.0) -> 
         if i < len(parts) - 1 or (parts and not re.match(r"^[MC]-.$", parts[-1])):
             await _tmux("send-keys", "-t", pane_target, "Enter")
 
-    # 等待指定时间
+    # 3. Wait for the specified duration
     await asyncio.sleep(wait_secs)
-    
-    # 读取新输出
+
+    # 4. Catch up the main screen and get the new byte position AFTER waiting
     await _feed_new_data(target_window)
-    screen, _, _ = _window_screens[target_window]
-    lines_after = len(screen.display)
-    
-    # 获取新产生的行
-    if lines_after > lines_before:
-        new_lines = screen.display[lines_before:lines_after]
-        output = "\n".join(new_lines).rstrip()
-    else:
-        output = ""
-    
+    _, _, pos_after = _window_screens[target_window]
+
+    # 5. Extract only the newly generated raw bytes from the log
+    log_file = _get_log_file(target_window)
+    new_bytes = b""
+    if os.path.exists(log_file) and pos_after > pos_before:
+        try:
+            with open(log_file, 'rb') as f:
+                f.seek(pos_before)
+                new_bytes = f.read(pos_after - pos_before)
+        except Exception as e:
+            return f"Input sent, but failed to read new output: {e}"
+
+    # 6. Parse the new bytes through a dynamically tall temporary screen to strip ANSI
+    output = ""
+    if new_bytes:
+        width, _ = await _get_pane_size(target_window)
+        # Estimate needed lines to prevent truncation (minimum 100)
+        estimated_lines = max(100, new_bytes.count(b'\n') + 50)
+        
+        temp_screen = pyte.Screen(width, estimated_lines)
+        temp_stream = pyte.ByteStream(temp_screen)
+        temp_stream.feed(new_bytes)
+
+        # Extract display and clean up trailing/leading whitespace
+        display_lines = temp_screen.display
+        output = "\n".join(display_lines).strip()
+
     max_chars = 16000
     if output:
         if len(output) > max_chars:
