@@ -136,7 +136,7 @@ tmux_del(target_window="old_task")
 
 7. **Multi‑process workflows**: Create multiple windows for parallel tasks and monitor each separately.
 
-8. **Avoid Heredoc**: use file tools instead of cat heredoc mode when creating a file because it's not context-efficient. when must needed, use a quoted (`<< 'EOF'`) to avoid accidental variable expansion and escaping issues.
+8. **Avoid Heredoc**: use file tools instead of cat heredoc mode when creating a file because it's not context-efficient. `file_write` and `file_replace` are all you need to edit files. when heredoc use is must needed, use a quoted (`<< 'EOF'`) to avoid accidental variable expansion and escaping issues.
 ---
 ### Memory Directory
 
