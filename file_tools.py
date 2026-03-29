@@ -99,8 +99,80 @@ def file_replace(path: str, old: str, new: str, replace_all: bool = False) -> st
     except Exception as e:
         return f"Error processing file: {str(e)}"
 
+import os
+
+def file_read(path: str, offset: int = 0, lines: int = 100) -> str:
+    """
+    Read a portion of a file, adding line numbers and enforcing a maximum length.
+
+    Args:
+        path: Absolute or relative path to the file.
+        offset: Number of lines to skip from the beginning (0-indexed).
+        lines: Number of lines to read. If negative, read all remaining lines.
+
+    Returns:
+        String containing the requested lines, each prefixed with its line number
+        (starting from offset+1) and a colon. The total string length is limited
+        to 8000 characters; longer output is truncated. On failure, returns an
+        error message starting with "Error:".
+    """
+    abs_path = os.path.abspath(path)
+
+    if not os.path.exists(abs_path):
+        return f"Error: File not found: {abs_path}"
+
+    if not os.path.isfile(abs_path):
+        return f"Error: Path is not a file: {abs_path}"
+
+    try:
+        with open(abs_path, 'r', encoding='utf-8') as f:
+            # Skip offset lines
+            for _ in range(offset):
+                try:
+                    next(f)
+                except StopIteration:
+                    return ""
+
+            output = ""
+            line_num = offset + 1
+            max_chars = 8000
+
+            # Determine how many lines to read
+            if lines < 0:
+                # Read until EOF or length limit
+                for current_line in f:
+                    line_with_num = f"{line_num}:{current_line}"
+                    if len(output) + len(line_with_num) > max_chars:
+                        remaining = max_chars - len(output)
+                        if remaining > 0:
+                            output += line_with_num[:remaining]
+                        break
+                    output += line_with_num
+                    line_num += 1
+            else:
+                # Read up to 'lines' lines
+                for _ in range(lines):
+                    try:
+                        current_line = next(f)
+                    except StopIteration:
+                        break
+                    line_with_num = f"{line_num}:{current_line}"
+                    if len(output) + len(line_with_num) > max_chars:
+                        remaining = max_chars - len(output)
+                        if remaining > 0:
+                            output += line_with_num[:remaining]
+                        break
+                    output += line_with_num
+                    line_num += 1
+
+            return output
+
+    except Exception as e:
+        return f"Error reading file: {str(e)}"
+
 
 FILE_TOOLS = {
     "file_write": file_write,
     "file_replace": file_replace,
+    "file_read": file_read,
 }

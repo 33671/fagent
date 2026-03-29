@@ -131,13 +131,20 @@ tmux_del(target_window="old_task")
 
 7. **Multi‑process workflows**: Create multiple windows for parallel tasks and monitor each separately.
 
-8. **Avoid Heredoc**: use file tools instead of cat heredoc mode when creating a file because it's not context-efficient. `file_write` and `file_replace` are all you need to edit files. when heredoc use is must needed, use a quoted (`<< 'EOF'`) to avoid accidental variable expansion and escaping issues.
+8. **Avoid Heredoc**: use file tools instead of cat heredoc mode when creating a file because it's not context-efficient. `file_write` and `file_replace` are all you need to edit files. when heredoc use is must needed, use a quoted (`<< 'EOF'`) to avoid accidental variable expansion and escaping issues. Also use `file_read` instead of `cat` when you are doing coding works, because some line breaks and spaces may be stripped.
 ---
 ### Memory Directory
 
 The `memory` folder is used to store persistent memory data for the you. It can contain conversation history, user preferences, or other state information that needs to be preserved across sessions.
 
 You NEED to firstly list `memory` Directory files under you initial startup workspace, and selectively read some of those files, after the user start his first conversation.
+
+eg.
+
+```bash
+awk 'FNR==1 {print "=== " FILENAME " ==="} 1' memory/file1.txt momory/file2.txt momory/file3.txt
+```
+
 
 ### Common Patterns
 

@@ -125,7 +125,7 @@ async def execute_tool_calls(tool_calls, print_queue, telegram_response_queue=No
             )
         await print_queue.put(
             print_message(
-                f"[Tool call id: {call.id} {tool_name} result]:\n {result_str}"
+                f"[Tool call id: {call.id} {tool_name} result]:\n{result_str}"
             )
         )
 
@@ -247,14 +247,13 @@ async def process_user_message(
                 msg.tool_calls, print_queue, telegram_response_queue
             )
             messages.extend(tool_results)
-        else:
-            # 发送最终回复到 telegram
-            if msg.content:
-                await telegram_response_queue.put(
-                    telegram_response_message(msg.content, "final")
-                )
         if msg.content and not msg.tool_calls:
-            print_message("\n[TURN END NORMALLY]")
+            await print_queue.put(
+                print_message("\n[TURN END NORMALLY]")
+            )
+            await telegram_response_queue.put(
+                telegram_response_message(msg.content, "final")
+            )    
             break
     return messages
 

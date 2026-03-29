@@ -59,4 +59,32 @@ FILE_TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "file_read",
+            "description": "Read a portion of a file. Skips the first 'offset' lines, then reads up to 'lines' lines. If lines is negative, reads all remaining lines.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Absolute path to the file",
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Number of lines to skip from the beginning (0-indexed).",
+                        "default": 0,
+                        "minimum": 0,
+                    },
+                    "lines": {
+                        "type": "integer",
+                        "description": "Number of lines to read. If negative, read all remaining lines.",
+                        "default": 100,
+                    },
+                },
+                "required": ["path"],
+            },
+        },
+    },
 ]
