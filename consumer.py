@@ -17,10 +17,11 @@ from queue_utils import (
     print_message,
     telegram_message,
     telegram_response_message,
+    user_input_message,
 )
 from tools import AVAILABLE_TOOLS, TOOLS
 from utils import strip_past_turn_reasoning_context
-
+from memo_tools import get_memo
 # 加载 .env 文件中的环境变量
 load_dotenv()
 
@@ -179,7 +180,7 @@ async def _process_telegram_messages(
             print_message("[Telegram Batch] 处理完成，重置 batch 标志")
         )
 
-
+MAX_STEP_LIMIT = 100
 async def process_user_message(
     user_content: str,
     messages: List[Dict],
@@ -187,11 +188,19 @@ async def process_user_message(
     print_queue,
     telegram_response_queue=None,
 ):
-    """处理一条用户消息（用户输入或终端输出）"""
+    if user_content == "":
+        await print_queue.put(
+            print_message(f"\nSomething might be going wrong")
+        )
+        return
+    if get_memo().strip() != "":
+        user_content += f"\n<SYSTEM> MEMO:{ get_memo().strip() } </SYSTEM>"
+        
+   
     messages.append({"role": "user", "content": user_content})
 
     step_count = 0
-    while True:
+    while step_count <= 100:
         if asyncio.current_task().cancelled():
             break
 
@@ -274,7 +283,13 @@ async def model_consumer(
         # msg_task = asyncio.create_task(main_queue.get())
         # user_interrupt_get = asyncio.create_task(user_interrupt_queue.get())
         # await asyncio.wait([msg_task, user_interrupt_get], return_when=asyncio.FIRST_COMPLETED)
+
         process_user_message_task: asyncio.Task = None
+        # msg:Message = None
+        # if get_memo().strip() == "":
+        #     msg = await main_queue.get()
+        # else:
+        #     msg = user_input_message(content="")
         msg = await main_queue.get()
         clear_queue(user_interrupt_queue)
         if msg.type == MessageType.COMMAND:

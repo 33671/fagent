@@ -52,5 +52,5 @@ async def main(is_preserved_thinking=False):
 
 
 if __name__ == "__main__":
-    preserve_thinking = False
+    preserve_thinking = True
     asyncio.run(main(preserve_thinking))
