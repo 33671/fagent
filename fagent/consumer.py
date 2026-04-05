@@ -249,8 +249,6 @@ async def process_user_message(
         if hasattr(msg, "tool_calls") and msg.tool_calls:
             assistant_msg["tool_calls"] = msg.tool_calls
         messages.append(assistant_msg)
-        if asyncio.current_task().cancelled():
-            break
         if msg.tool_calls:
             tool_results = await execute_tool_calls(
                 msg.tool_calls, print_queue, telegram_response_queue

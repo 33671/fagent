@@ -13,7 +13,7 @@ FILE_TOOLS_SCHEMA = [
                 "properties": {
                     "path": {
                         "type": "string",
-                        "description": "Absolute path to the file",
+                        "description": "Absolute or relative path to the file",
                     },
                     "content": {
                         "type": "string",
@@ -39,7 +39,7 @@ FILE_TOOLS_SCHEMA = [
                 "properties": {
                     "path": {
                         "type": "string",
-                        "description": "Absolute path to the file",
+                        "description": "Absolute or relative path to the file",
                     },
                     "old": {
                         "type": "string",
@@ -69,7 +69,7 @@ FILE_TOOLS_SCHEMA = [
                 "properties": {
                     "path": {
                         "type": "string",
-                        "description": "Absolute path to the file",
+                        "description": "Absolute or relative path to the file",
                     },
                     "offset": {
                         "type": "integer",

@@ -130,13 +130,8 @@ async def telegram_bot_consumer(
                     formatted = f"📊 *Tool Result*\n```\n{escape_markdown(truncated)}\n```"
                     await send_telegram_message(bot, chat_id, formatted)
                     
-                elif response_type == "content":
-                    # 中间过程的 content（模型在调用工具前的思考/说明）
-                    formatted = f"💭 *Thinking*\n{escape_markdown(content)}"
-                    await send_telegram_message(bot, chat_id, formatted)
-                    
                 elif response_type == "final":
-                    formatted = f"🤖 *Assistant*\n{escape_markdown(content)}"
+                    formatted = f"{escape_markdown(content)}"
                     await send_telegram_message(bot, chat_id, formatted)
                     
                 else:
