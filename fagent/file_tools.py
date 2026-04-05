@@ -52,7 +52,7 @@ def file_write(path: str, content: str, mode: Optional[str] = None) -> str:
         else:
             return f"Error: Invalid mode '{mode}'. Must be 'overwrite', 'append', or None."
     except Exception as e:
-        return f"Error writing to file: {str(e)}"
+        return f"Error writing to file '{abs_path}' (resolved from '{path}'): {str(e)}"
 
 
 def file_replace(path: str, old: str, new: str, replace_all: bool = False) -> str:
@@ -73,10 +73,10 @@ def file_replace(path: str, old: str, new: str, replace_all: bool = False) -> st
 
     # Check file existence
     if not os.path.exists(abs_path):
-        return f"Error: File not found: {abs_path}"
+        return f"Error: File not found: {abs_path} (resolved from '{path}')"
 
     if not os.path.isfile(abs_path):
-        return f"Error: Path is not a file: {abs_path}"
+        return f"Error: Path is not a file: {abs_path} (resolved from '{path}')"
 
     try:
         with open(abs_path, 'r', encoding='utf-8') as f:
@@ -97,9 +97,7 @@ def file_replace(path: str, old: str, new: str, replace_all: bool = False) -> st
             return f"No occurrences found to replace in {abs_path}"
 
     except Exception as e:
-        return f"Error processing file: {str(e)}"
-
-import os
+        return f"Error processing file '{abs_path}' (resolved from '{path}'): {str(e)}"
 
 def file_read(path: str, offset: int = 0, lines: int = 100) -> str:
     """
@@ -119,10 +117,10 @@ def file_read(path: str, offset: int = 0, lines: int = 100) -> str:
     abs_path = os.path.abspath(path)
 
     if not os.path.exists(abs_path):
-        return f"Error: File not found: {abs_path}"
+        return f"Error: File not found: {abs_path} (resolved from '{path}')"
 
     if not os.path.isfile(abs_path):
-        return f"Error: Path is not a file: {abs_path}"
+        return f"Error: Path is not a file: {abs_path} (resolved from '{path}')"
 
     try:
         with open(abs_path, 'r', encoding='utf-8') as f:
@@ -168,7 +166,7 @@ def file_read(path: str, offset: int = 0, lines: int = 100) -> str:
             return output
 
     except Exception as e:
-        return f"Error reading file: {str(e)}"
+        return f"Error reading file '{abs_path}' (resolved from '{path}'): {str(e)}"
 
 
 FILE_TOOLS = {

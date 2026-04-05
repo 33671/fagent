@@ -74,7 +74,9 @@ def _get_pane_target(window_name: str) -> str:
 def _get_log_file(window_name: str) -> str:
     """Return the log file path for a given window."""
     safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", window_name)
-    return os.path.join("./", f"agent_session_{safe_name}.log")
+    fagent_dir = os.path.expanduser("~/.fagent")
+    os.makedirs(fagent_dir, exist_ok=True)
+    return os.path.join(fagent_dir, f"agent_session_{safe_name}.log")
 
 
 def _truncate_content(content: str, max_chars: int) -> str:

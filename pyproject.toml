@@ -1,5 +1,5 @@
 [project]
-name = "async-agent"
+name = "fagent"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -15,12 +15,19 @@ dependencies = [
     "pyte>=0.8.2",
 ]
 
+[project.scripts]
+fagent = "fagent.main:run_main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fagent*"]
+
+[tool.setuptools.package-data]
+fagent = ["*.md"]
+
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
-
-[tool.uv.workspace]
-members = ["my_project"]
 
 [dependency-groups]
 dev = [

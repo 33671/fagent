@@ -11,8 +11,8 @@ Behavior:
 import asyncio
 from typing import Optional
 
-from queue_utils import MessageType, print_message
-from bot_producer import stop_typing_for_turn, get_current_turn_id
+from .queue_utils import MessageType, print_message
+from .bot_producer import stop_typing_for_turn, get_current_turn_id
 
 
 def escape_markdown(text: str) -> str:

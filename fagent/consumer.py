@@ -9,8 +9,8 @@ from openai import OpenAI
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import HTML
 
-from bot_producer import set_telegram_batch_active
-from queue_utils import (
+from .bot_producer import set_telegram_batch_active
+from .queue_utils import (
     Message,
     MessageType,
     clear_queue,
@@ -19,9 +19,9 @@ from queue_utils import (
     telegram_response_message,
     user_input_message,
 )
-from tools import AVAILABLE_TOOLS, TOOLS
-from utils import strip_past_turn_reasoning_context
-from memo_tools import get_memo
+from .tools import AVAILABLE_TOOLS, TOOLS
+from .utils import strip_past_turn_reasoning_context
+from .memo_tools import get_memo
 # 加载 .env 文件中的环境变量
 load_dotenv(override=True)
 

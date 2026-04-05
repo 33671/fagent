@@ -29,7 +29,7 @@ from telegram.ext import (
     filters,
 )
 
-from queue_utils import telegram_message, print_message, MessageType
+from .queue_utils import telegram_message, print_message, MessageType
 
 load_dotenv()
 
@@ -40,8 +40,8 @@ ENV_TARGET_USERNAME = os.getenv("TARGET_USERNAME")
 # Where to persist username->chat_id mappings
 DEFAULT_STORE_PATH = Path.home() / ".tgpipe_targets.json"
 
-# Media download directory
-MEDIA_DIR = Path("tg_media")
+# Media download directory - 使用 ~/.fagent/tg_media
+MEDIA_DIR = Path.home() / ".fagent" / "tg_media"
 
 # Globals
 app: Optional[Application] = None

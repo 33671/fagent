@@ -4,7 +4,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
-from queue_utils import user_input_message, command_message, print_message
+from .queue_utils import user_input_message, command_message, print_message
 
 async def user_input_producer(main_queue: asyncio.Queue, print_queue: asyncio.Queue,user_interrupt_queue:asyncio.Queue):
     """异步读取用户输入，发送到 main_queue"""
