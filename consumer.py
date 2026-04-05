@@ -23,7 +23,7 @@ from tools import AVAILABLE_TOOLS, TOOLS
 from utils import strip_past_turn_reasoning_context
 from memo_tools import get_memo
 # 加载 .env 文件中的环境变量
-load_dotenv()
+load_dotenv(override=True)
 
 # 从环境变量获取配置，允许设置默认值
 client = OpenAI(
