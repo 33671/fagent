@@ -58,6 +58,7 @@ async def execute_tool_calls(tool_calls, print_queue, telegram_response_queue=No
     for call in tool_calls:
         tool_name = call.function.name
         tool_args = json.loads(call.function.arguments)
+        print(call.function.arguments)
 
         exec_info = f"{tool_name}({json.dumps(tool_args)})"
         await print_queue.put(print_message(f"[Executing tool]: {exec_info}"))
@@ -244,8 +245,12 @@ async def process_user_message(
         assistant_msg = {"role": "assistant"}
         if hasattr(msg, "reasoning_content") and msg.reasoning_content:
             assistant_msg["reasoning_content"] = msg.reasoning_content
+        else:
+            assistant_msg["reasoning_content"] = ""
         if hasattr(msg, "content") and msg.content:
             assistant_msg["content"] = msg.content
+        else:
+            assistant_msg["content"] = ""
         if hasattr(msg, "tool_calls") and msg.tool_calls:
             assistant_msg["tool_calls"] = msg.tool_calls
         messages.append(assistant_msg)
@@ -410,6 +415,11 @@ async def print_consumer(print_queue: asyncio.Queue):
         if msg.type == MessageType.PRINT:
             text, kwargs = msg.data
             safe_text = html.escape(text)
-            print_formatted_text(HTML(safe_text), **kwargs)
+            try:
+                print_formatted_text(HTML(safe_text), **kwargs)
+            except Exception:
+                # HTML parsing can fail on invalid XML characters (e.g. control chars, etc.)
+                # fall back to printing raw text
+                print_formatted_text(safe_text, **kwargs)
         else:
             print_formatted_text(f"未知打印消息: {msg}")

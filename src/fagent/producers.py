@@ -10,11 +10,11 @@ async def user_input_producer(main_queue: asyncio.Queue, print_queue: asyncio.Qu
     """异步读取用户输入，发送到 main_queue"""
     session = PromptSession(history=InMemoryHistory())
     completer = WordCompleter(["exit", "quit", "clear", "history"], ignore_case=True)
-    bindings = KeyBindings()
+    # bindings = KeyBindings()
 
-    @bindings.add("escape", "enter")
-    def _(event):
-        event.current_buffer.insert_text("\n")
+    # @bindings.add("escape", "enter")
+    # def _(event):
+    #     event.current_buffer.insert_text("\n")
 
     turn_count = 1
     while True:
@@ -22,8 +22,8 @@ async def user_input_producer(main_queue: asyncio.Queue, print_queue: asyncio.Qu
             user_input = await session.prompt_async(
                 f"\nUser [Turn {turn_count}]: ",
                 completer=completer,
-                key_bindings=bindings,
-                multiline=False,
+                #key_bindings=bindings,
+                multiline=True,
                 enable_history_search=True,
             )
         except KeyboardInterrupt:  # ctrl c interrupt

@@ -7,7 +7,7 @@ FILE_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "file_write",
-            "description": "Write string content to a file. Creates parent directories if needed. Mode determines write behavior: if not specified,  write uses 'overwrite'. Explicit mode can be set to 'overwrite' or 'append'.",
+            "description": "Write string content to a file. Creates parent directories if needed. Mode determines write behavior: if not specified, an error is returned if the file already exists. Explicit mode can be set to 'overwrite' or 'append'.",
             "parameters": {
                 "type": "object",
                 "properties": {

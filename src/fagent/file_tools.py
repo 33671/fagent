@@ -36,8 +36,10 @@ def file_write(path: str, content: str, mode: Optional[str] = None) -> str:
     if not _ensure_directory_exists(abs_path):
         return f"Error: Could not create directory for {abs_path}"
 
-    # Determine mode if not specified
+    # Check if file exists when mode is not explicitly set
     if mode is None:
+        if os.path.exists(abs_path):
+            return f"Error: File already exists: {abs_path}. Use mode='overwrite' to overwrite, or mode='append' to append."
         mode = "overwrite"
 
     try:

@@ -14,6 +14,13 @@ dependencies = [
     "pytest-asyncio>=1.3.0",
     "pyte>=0.8.2",
 ]
+[build-system]
+requires = ["uv_build>=0.8.5,<0.10.0"]
+build-backend = "uv_build"
+[tool.uv.sources]
+fagent = {workspace = true}
+[tool.uv.build-backend]
+module-name = ["fagent"]
 
 [project.scripts]
 fagent = "fagent.main:run_main"
@@ -22,12 +29,9 @@ fagent = "fagent.main:run_main"
 where = ["."]
 include = ["fagent*"]
 
+
 [tool.setuptools.package-data]
 fagent = ["*.md"]
-
-[[tool.uv.index]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-default = true
 
 [dependency-groups]
 dev = [
